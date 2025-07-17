@@ -3,6 +3,7 @@ import "./globals.css";
 // Imported header
 import Header from "@/components/header";
 import { ClerkProvider } from "@clerk/nextjs";
+import { Toaster } from "sonner";
 
 // Font provided for better look
 const inter = Inter({ subsets: ["latin"] });
@@ -24,6 +25,7 @@ export default function RootLayout({ children }) {
           <main className="min-h-screen pt-20 pb-8">
             {children}
           </main>
+          <Toaster richColors/> 
           
           {/* Footer */}
           <footer className="bg-blue-50 py-12 border-t border-blue-100">

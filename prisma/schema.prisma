@@ -9,7 +9,7 @@ datasource db {
 }
 
 model User {
-  id            String    @id @default(uuid())
+  id            String    @id @default(cuid())
   clerkUserId   String    @unique // clerk user id
   email         String    @unique
   name          String?
@@ -93,6 +93,7 @@ enum TransactionStatus {
   COMPLETED
   FAILED
 }
+
 
 enum RecurringInterval {
   DAILY
