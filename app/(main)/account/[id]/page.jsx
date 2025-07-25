@@ -1,5 +1,6 @@
 // AccountsPage component
-import { getAccountWithTransactions } from '@/actions/accounts';
+
+import { getAccountWithTransactions } from '@/actions/account';
 import { notFound } from 'next/navigation';
 import React, { Suspense } from 'react'
 import TransactionTable from './_components/transaction-table';

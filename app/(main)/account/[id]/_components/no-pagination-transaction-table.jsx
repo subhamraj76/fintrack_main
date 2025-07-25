@@ -8,9 +8,6 @@ import {
   Trash,
   Search,
   X,
-  ChevronLeft,
-  ChevronRight,
-  
   RefreshCw,
   Clock,
 } from "lucide-react";
@@ -50,11 +47,11 @@ import {
 } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { categoryColors } from "@/data/categories";
+import { bulkDeleteTransactions } from "@/actions/account";
+import useFetch from "@/hooks/use-fetch";
 import { BarLoader } from "react-spinners";
 import { useRouter } from "next/navigation";
-import { bulkDeleteTransactions } from "@/actions/account"; // Import your server action
-
-const ITEMS_PER_PAGE = 10;
 
 const RECURRING_INTERVALS = {
   DAILY: "Daily",
@@ -63,19 +60,7 @@ const RECURRING_INTERVALS = {
   YEARLY: "Yearly",
 };
 
-// Mock category colors - replace with your actual categoryColors import
-const categoryColors = {
-  food: "#f59e0b",
-  transport: "#3b82f6",
-  entertainment: "#8b5cf6",
-  shopping: "#ef4444",
-  bills: "#6b7280",
-  healthcare: "#10b981",
-  education: "#f97316",
-  other: "#64748b",
-};
-
-const TransactionTable = ({ transactions = [] }) => {
+export function NoPaginationTransactionTable({ transactions }) {
   const [selectedIds, setSelectedIds] = useState([]);
   const [sortConfig, setSortConfig] = useState({
     field: "date",
@@ -84,8 +69,6 @@ const TransactionTable = ({ transactions = [] }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
   const [recurringFilter, setRecurringFilter] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [deleteLoading, setDeleteLoading] = useState(false);
   const router = useRouter();
 
   // Memoized filtered and sorted transactions
@@ -137,18 +120,6 @@ const TransactionTable = ({ transactions = [] }) => {
     return result;
   }, [transactions, searchTerm, typeFilter, recurringFilter, sortConfig]);
 
-  // Pagination calculations
-  const totalPages = Math.ceil(
-    filteredAndSortedTransactions.length / ITEMS_PER_PAGE
-  );
-  const paginatedTransactions = useMemo(() => {
-    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-    return filteredAndSortedTransactions.slice(
-      startIndex,
-      startIndex + ITEMS_PER_PAGE
-    );
-  }, [filteredAndSortedTransactions, currentPage]);
-
   const handleSort = (field) => {
     setSortConfig((current) => ({
       field,
@@ -167,11 +138,17 @@ const TransactionTable = ({ transactions = [] }) => {
 
   const handleSelectAll = () => {
     setSelectedIds((current) =>
-      current.length === paginatedTransactions.length
+      current.length === filteredAndSortedTransactions.length
         ? []
-        : paginatedTransactions.map((t) => t.id)
+        : filteredAndSortedTransactions.map((t) => t.id)
     );
   };
+
+  const {
+    loading: deleteLoading,
+    fn: deleteFn,
+    data: deleted,
+  } = useFetch(bulkDeleteTransactions);
 
   const handleBulkDelete = async () => {
     if (
@@ -181,56 +158,20 @@ const TransactionTable = ({ transactions = [] }) => {
     )
       return;
 
-    setDeleteLoading(true);
-    try {
-      const result = await bulkDeleteTransactions(selectedIds);
-      
-      if (result.success) {
-        toast.success("Transactions deleted successfully");
-        setSelectedIds([]);
-        router.refresh(); // This will refresh the server component data
-      } else {
-        toast.error(result.error || "Failed to delete transactions");
-      }
-    } catch (error) {
-      toast.error("Failed to delete transactions");
-    } finally {
-      setDeleteLoading(false);
-    }
+    deleteFn(selectedIds);
   };
+
+  useEffect(() => {
+    if (deleted && !deleteLoading) {
+      toast.error("Transactions deleted successfully");
+    }
+  }, [deleted, deleteLoading]);
 
   const handleClearFilters = () => {
     setSearchTerm("");
     setTypeFilter("");
     setRecurringFilter("");
-    setCurrentPage(1);
-  };
-
-  const handlePageChange = (newPage) => {
-    setCurrentPage(newPage);
-    setSelectedIds([]); // Clear selections on page change
-  };
-
-  const deleteFn = async (ids) => {
-    if (!window.confirm(`Are you sure you want to delete this transaction?`)) {
-      return;
-    }
-    
-    setDeleteLoading(true);
-    try {
-      const result = await bulkDeleteTransactions(ids);
-      
-      if (result.success) {
-        toast.success("Transaction deleted successfully");
-        router.refresh(); // This will refresh the server component data
-      } else {
-        toast.error(result.error || "Failed to delete transaction");
-      }
-    } catch (error) {
-      toast.error("Failed to delete transaction");
-    } finally {
-      setDeleteLoading(false);
-    }
+    setSelectedIds([]);
   };
 
   return (
@@ -238,7 +179,6 @@ const TransactionTable = ({ transactions = [] }) => {
       {deleteLoading && (
         <BarLoader className="mt-4" width={"100%"} color="#9333ea" />
       )}
-      
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="relative flex-1">
@@ -246,22 +186,13 @@ const TransactionTable = ({ transactions = [] }) => {
           <Input
             placeholder="Search transactions..."
             value={searchTerm}
-            onChange={(e) => {
-              setSearchTerm(e.target.value);
-              setCurrentPage(1);
-            }}
+            onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-8"
           />
         </div>
         <div className="flex gap-2">
-          <Select
-            value={typeFilter}
-            onValueChange={(value) => {
-              setTypeFilter(value);
-              setCurrentPage(1);
-            }}
-          >
-            <SelectTrigger className="w-[130px]">
+          <Select value={typeFilter} onValueChange={setTypeFilter}>
+            <SelectTrigger>
               <SelectValue placeholder="All Types" />
             </SelectTrigger>
             <SelectContent>
@@ -274,7 +205,6 @@ const TransactionTable = ({ transactions = [] }) => {
             value={recurringFilter}
             onValueChange={(value) => {
               setRecurringFilter(value);
-              setCurrentPage(1);
             }}
           >
             <SelectTrigger className="w-[130px]">
@@ -307,7 +237,7 @@ const TransactionTable = ({ transactions = [] }) => {
               onClick={handleClearFilters}
               title="Clear filters"
             >
-              <X className="h-4 w-4" />
+              <X className="h-4 w-5" />
             </Button>
           )}
         </div>
@@ -321,8 +251,9 @@ const TransactionTable = ({ transactions = [] }) => {
               <TableHead className="w-[50px]">
                 <Checkbox
                   checked={
-                    selectedIds.length === paginatedTransactions.length &&
-                    paginatedTransactions.length > 0
+                    selectedIds.length ===
+                      filteredAndSortedTransactions.length &&
+                    filteredAndSortedTransactions.length > 0
                   }
                   onCheckedChange={handleSelectAll}
                 />
@@ -375,7 +306,7 @@ const TransactionTable = ({ transactions = [] }) => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {paginatedTransactions.length === 0 ? (
+            {filteredAndSortedTransactions.length === 0 ? (
               <TableRow>
                 <TableCell
                   colSpan={7}
@@ -385,7 +316,7 @@ const TransactionTable = ({ transactions = [] }) => {
                 </TableCell>
               </TableRow>
             ) : (
-              paginatedTransactions.map((transaction) => (
+              filteredAndSortedTransactions.map((transaction) => (
                 <TableRow key={transaction.id}>
                   <TableCell>
                     <Checkbox
@@ -400,7 +331,7 @@ const TransactionTable = ({ transactions = [] }) => {
                   <TableCell className="capitalize">
                     <span
                       style={{
-                        background: categoryColors[transaction.category] || "#64748b",
+                        background: categoryColors[transaction.category],
                       }}
                       className="px-2 py-1 rounded text-white text-sm"
                     >
@@ -415,8 +346,8 @@ const TransactionTable = ({ transactions = [] }) => {
                         : "text-green-500"
                     )}
                   >
-                    {transaction.type === "EXPENSE" ? "-" : "+"}₹
-                    {transaction.amount?.toFixed(2) || "0.00"}
+                    {transaction.type === "EXPENSE" ? "-" : "+"}$
+                    {transaction.amount.toFixed(2)}
                   </TableCell>
                   <TableCell>
                     {transaction.isRecurring ? (
@@ -428,17 +359,21 @@ const TransactionTable = ({ transactions = [] }) => {
                               className="gap-1 bg-purple-100 text-purple-700 hover:bg-purple-200"
                             >
                               <RefreshCw className="h-3 w-3" />
-                              {RECURRING_INTERVALS[transaction.recurringInterval] || "Monthly"}
+                              {
+                                RECURRING_INTERVALS[
+                                  transaction.recurringInterval
+                                ]
+                              }
                             </Badge>
                           </TooltipTrigger>
                           <TooltipContent>
                             <div className="text-sm">
                               <div className="font-medium">Next Date:</div>
                               <div>
-                                {transaction.nextRecurringDate ? 
-                                  format(new Date(transaction.nextRecurringDate), "PPP") : 
-                                  "Not set"
-                                }
+                                {format(
+                                  new Date(transaction.nextRecurringDate),
+                                  "PPP"
+                                )}
                               </div>
                             </div>
                           </TooltipContent>
@@ -484,33 +419,6 @@ const TransactionTable = ({ transactions = [] }) => {
           </TableBody>
         </Table>
       </div>
-
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => handlePageChange(currentPage - 1)}
-            disabled={currentPage === 1}
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <span className="text-sm">
-            Page {currentPage} of {totalPages}
-          </span>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => handlePageChange(currentPage + 1)}
-            disabled={currentPage === totalPages}
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
-      )}
     </div>
   );
-};
-
-export default TransactionTable;
+}

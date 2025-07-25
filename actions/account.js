@@ -148,4 +148,3 @@ export async function updateDefaultAccount(accountId) {
     return { success: false, error: error.message };
   }
 }
-
