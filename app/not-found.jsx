@@ -14,24 +14,21 @@ export default function NotFound() {
             404
           </div>
         </div>
-
         {/* Content */}
         <div className="space-y-4">
           <h2 className="text-2xl font-light text-blue-100 tracking-wide">
             Lost in space
           </h2>
           <p className="text-blue-200 leading-relaxed">
-            The page you're seeking has drifted away into the digital cosmos.
+            The page you&apos;re seeking has drifted away into the digital cosmos.
           </p>
         </div>
-
         {/* Decorative elements */}
         <div className="flex justify-center space-x-2 py-4">
           <div className="w-2 h-2 bg-blue-300 rounded-full animate-bounce"></div>
           <div className="w-2 h-2 bg-blue-200 rounded-full animate-bounce delay-150"></div>
           <div className="w-2 h-2 bg-blue-100 rounded-full animate-bounce delay-300"></div>
         </div>
-
         {/* Action button */}
         <div className="pt-2">
           <Link href="/">
@@ -42,7 +39,6 @@ export default function NotFound() {
             </Button>
           </Link>
         </div>
-
         {/* Subtle glow effect */}
         <div className="absolute inset-0 bg-blue-400/10 blur-3xl -z-20 rounded-full"></div>
       </div>
