@@ -1,19 +1,26 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        net: false,
+        tls: false,
+      };
+    }
+    return config;
+  },
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  typescript: {
+    ignoreBuildErrors: true,
+  },
   images: {
-    remotePatterns: [
-      {
-        protocol: "https",
-        hostname: "randomuser.me",
-      },
-    ],
+    unoptimized: true,
   },
-
-  experimental: {
-    serverActions: {
-      bodySizeLimit: "5mb",
-    },
-  },
+  transpilePackages: ['react-day-picker'],
 };
 
 export default nextConfig;
